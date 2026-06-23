@@ -16,17 +16,9 @@ body {
   body { background: #111; color: #eee; }
 }
 h1 { font-size: 14px; font-weight: normal; margin-bottom: 20px; }
-canvas {
-  display: block;
-  width: 100%;
-  height: 180px;
-  border: 1px solid #ccc;
-  background: #f8f8f8;
-  margin-bottom: 12px;
-}
-@media (prefers-color-scheme: dark) {
-  canvas { border-color: #333; background: #1a1a1a; }
-}
+#big-display { font-size: 72px; font-weight: 500; letter-spacing: -2px; margin-bottom: 4px; line-height: 1; }
+#big-unit { font-size: 16px; color: #888; margin-bottom: 6px; }
+#big-kana { font-size: 52px; margin-bottom: 24px; color: #888; }
 .metrics {
   display: flex;
   gap: 24px;
@@ -59,18 +51,15 @@ input[type=range] { width: 80px; }
 </head>
 <body>
 <h1>Audio Analyzer</h1>
-<canvas id="canvas"></canvas>
+<div id="big-display">—</div>
+<div id="big-unit">Hz</div>
+<div id="big-kana">—</div>
 <div class="metrics">
-  <div><span>Peak</span><b id="peak">—</b> Hz</div>
-  <div><span>文字</span><b id="kana" style="font-size:20px">—</b></div>
   <div><span>dB</span><b id="db">—</b></div>
   <div><span>RMS</span><b id="rms">—</b> %</div>
 </div>
 <div class="controls">
   <button id="btn-start" onclick="toggleRecording()">START</button>
-  <span class="sep">|</span>
-  <button id="btn-spectrum" class="active" onclick="setMode('spectrum')">SPECTRUM</button>
-  <button id="btn-waveform" onclick="setMode('waveform')">WAVEFORM</button>
   <span class="sep">|</span>
   <label>
     <input type="checkbox" id="nc-toggle" onchange="toggleNC()"> NC
@@ -82,7 +71,7 @@ input[type=range] { width: 80px; }
 
 <script>
 let audioCtx, analyser, source, stream, noiseGate;
-let animId, isRecording = false, mode = 'spectrum';
+let animId, isRecording = false;
 let ncEnabled = false, ncThreshold = 20;
 
 const KANA = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあいうえおかきくけこさしすせそ'.split('').slice(0, 50);
@@ -95,23 +84,7 @@ function freqToKana(hz) {
   return KANA[Math.min(Math.max(idx, 0), 49)];
 }
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 
-function dark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
-
-function resize() {
-  const dpr = devicePixelRatio || 1;
-  const w = canvas.offsetWidth, h = canvas.offsetHeight;
-  canvas.width = w * dpr; canvas.height = h * dpr;
-  ctx.scale(dpr, dpr);
-}
-
-function setMode(m) {
-  mode = m;
-  document.getElementById('btn-spectrum').classList.toggle('active', m === 'spectrum');
-  document.getElementById('btn-waveform').classList.toggle('active', m === 'waveform');
-}
 
 function toggleNC() {
   ncEnabled = document.getElementById('nc-toggle').checked;
@@ -142,54 +115,7 @@ function applyNC() {
   }
 }
 
-function drawIdle() {
-  resize();
-  const w = canvas.offsetWidth, h = canvas.offsetHeight;
-  ctx.fillStyle = dark() ? '#1a1a1a' : '#f8f8f8';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = dark() ? '#444' : '#ccc';
-  ctx.font = '11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('NO INPUT', w / 2, h / 2);
-}
 
-function draw(freq, time, bufLen, sr) {
-  const w = canvas.offsetWidth, h = canvas.offsetHeight;
-  ctx.fillStyle = dark() ? '#1a1a1a' : '#f8f8f8';
-  ctx.fillRect(0, 0, w, h);
-
-  if (mode === 'spectrum') {
-    const bars = Math.min(bufLen, 512);
-    const bw = w / bars;
-    for (let i = 0; i < bars; i++) {
-      const v = freq[i] / 255;
-      if (ncEnabled && freq[i] < ncThreshold) continue;
-      const bh = v * h;
-      ctx.fillStyle = dark() ? '#7dd3fc' : '#2563eb';
-      ctx.fillRect(i * bw, h - bh, bw - 0.5, bh);
-    }
-    ctx.fillStyle = dark() ? '#555' : '#aaa';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    [100, 500, 1000, 2000, 5000, 10000].forEach(f => {
-      const x = (f / (sr / 2)) * Math.min(bufLen, 512) * bw;
-      if (x < w - 10) ctx.fillText(f >= 1000 ? (f/1000)+'k' : f, x, h - 3);
-    });
-  } else {
-    ctx.strokeStyle = dark() ? '#555' : '#ddd';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
-    ctx.beginPath();
-    ctx.strokeStyle = dark() ? '#7dd3fc' : '#2563eb';
-    ctx.lineWidth = 1.2;
-    const sw = w / bufLen;
-    for (let i = 0; i < bufLen; i++) {
-      const y = (time[i] / 128) * h / 2;
-      i === 0 ? ctx.moveTo(0, y) : ctx.lineTo(i * sw, y);
-    }
-    ctx.stroke();
-  }
-}
 
 function getPeak(freq, bufLen, sr) {
   let max = 0, idx = 0;
@@ -209,12 +135,11 @@ function loop() {
   const time = new Uint8Array(bufLen);
   analyser.getByteFrequencyData(freq);
   analyser.getByteTimeDomainData(time);
-  draw(freq, time, bufLen, audioCtx.sampleRate);
   const peak = getPeak(freq, bufLen, audioCtx.sampleRate);
   const maxV = Math.max(...freq);
   const db = maxV === 0 ? '—' : Math.round(20*Math.log10(maxV/255));
-  document.getElementById('peak').textContent = peak;
-  document.getElementById('kana').textContent = freqToKana(peak);
+  document.getElementById('big-display').textContent = peak;
+  document.getElementById('big-kana').textContent = freqToKana(peak);
   document.getElementById('db').textContent = db;
   document.getElementById('rms').textContent = getRMS(time);
   animId = requestAnimationFrame(loop);
@@ -246,13 +171,11 @@ async function toggleRecording() {
     isRecording = false;
     btn.textContent = 'START';
     btn.classList.remove('active');
-    ['peak','kana','db','rms'].forEach(id => document.getElementById(id).textContent = '—');
-    drawIdle();
+    document.getElementById('big-display').textContent = '—';
+    document.getElementById('big-kana').textContent = '—';
+    ['db','rms'].forEach(id => document.getElementById(id).textContent = '—');
   }
 }
-
-window.addEventListener('resize', () => { if (!isRecording) drawIdle(); });
-drawIdle();
 </script>
 </body>
 </html>
