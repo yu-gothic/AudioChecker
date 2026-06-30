@@ -202,8 +202,8 @@
 
       <div class="setting">
         <label>明瞭度のしきい値 <span class="value" id="clarity-val"></span></label>
-        <input type="range" id="clarity-range" min="0.5" max="0.99" step="0.01">
-        <p class="desc">大きいほど「はっきりした音」だけに反応します（ノイズ除去）。</p>
+        <input type="range" id="clarity-range" min="0" max="0.99" step="0.01">
+        <p class="desc">0で判定なし。大きいほど「はっきりした音」だけに反応します（ノイズ除去）。</p>
       </div>
 
       <div class="setting">
@@ -241,11 +241,13 @@
     let monitorOn   = false;
 
     // 調整可能なパラメータ（スライダー・チェックボックスと連動）
+    // 既定は「小さい音を無視する（音量しきい値）」だけを使う。
+    // ブラウザのノイズ抑制と明瞭度判定はオフ（明瞭度0 = 判定なし）。
     const settings = {
       rmsThreshold: 0.015,
-      clarityThreshold: 0.85,
+      clarityThreshold: 0,
       smoothing: 5,
-      noiseSuppression: true
+      noiseSuppression: false
     };
 
     // スライダー1つを settings の1キーに結びつける
