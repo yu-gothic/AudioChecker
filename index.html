@@ -61,6 +61,19 @@
       opacity: 1;
     }
 
+    /* 一応のHz表示 */
+    #hz-readout {
+      position: absolute;
+      bottom: 14px;
+      right: 16px;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.55;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+      mix-blend-mode: difference;
+    }
+
     footer {
       padding: 20px 16px 28px;
       display: flex;
@@ -150,12 +163,14 @@
 
   <div class="stage">
     <img id="pitch-image" alt="">
+    <span id="hz-readout">-- Hz</span>
   </div>
 
   <footer>
     <button id="start-btn">マイクをONにする</button>
     <p id="status"></p>
 
+    <button id="monitor-toggle" class="link-btn">🔊 モニター: OFF</button>
     <button id="settings-toggle" class="link-btn">⚙ 詳細設定</button>
 
     <div id="settings-panel" hidden>
@@ -182,6 +197,7 @@
   <script src="audio_analyzer.js"></script>
   <script>
     const imgEl  = document.getElementById('pitch-image');
+    const hzEl   = document.getElementById('hz-readout');
     const btn    = document.getElementById('start-btn');
     const status = document.getElementById('status');
 
@@ -202,6 +218,7 @@
     let analyzer    = null;
     let running     = false;
     let currentIdx  = -1;
+    let monitorOn   = false;
 
     // 調整可能なパラメータ（スライダーと連動）
     const settings = {
@@ -234,11 +251,22 @@
       panel.hidden = !panel.hidden;
     });
 
+    const monitorBtn = document.getElementById('monitor-toggle');
+    monitorBtn.addEventListener('click', () => {
+      monitorOn = !monitorOn;
+      monitorBtn.textContent = '🔊 モニター: ' + (monitorOn ? 'ON' : 'OFF');
+      if (analyzer) analyzer.setMonitor(monitorOn);
+      // ハウリング防止のため、ON時はヘッドホン推奨を知らせる
+      if (monitorOn && running) status.textContent = 'ハウリング防止のためヘッドホン推奨';
+    });
+
     function updateVisual(freq) {
       if (freq < 0) {
         imgEl.classList.remove('visible');
+        hzEl.textContent = '-- Hz';
         return;
       }
+      hzEl.textContent = Math.round(freq) + ' Hz';
       const t   = Math.max(0, Math.min(1, (freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)));
       const idx = Math.min(IMAGE_FILES.length - 1, Math.floor(t * IMAGE_FILES.length));
       if (idx !== currentIdx) {
@@ -252,7 +280,7 @@
       if (!running) {
         try {
           status.textContent = '起動中...';
-          analyzer = new AudioAnalyzer(updateVisual, settings);
+          analyzer = new AudioAnalyzer(updateVisual, { ...settings, monitor: monitorOn });
           await analyzer.start();
           running = true;
           btn.textContent    = 'マイクをOFFにする';
@@ -267,6 +295,7 @@
         btn.textContent    = 'マイクをONにする';
         status.textContent = '';
         imgEl.classList.remove('visible');
+        hzEl.textContent   = '-- Hz';
       }
     });
   </script>

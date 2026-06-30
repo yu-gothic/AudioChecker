@@ -11,6 +11,9 @@ class AudioAnalyzer {
     this.clarityThreshold = options.clarityThreshold ?? 0.9; // ピッチの明瞭度の下限（0〜1）
     this.smoothing = options.smoothing ?? 5;                // メディアンフィルタのフレーム数
 
+    this.monitor = options.monitor ?? false;               // マイク入力をスピーカーで再生するか
+    this.monitorGain = null;
+
     this._history = [];
   }
 
@@ -38,10 +41,23 @@ class AudioAnalyzer {
     source.connect(highpass);
     highpass.connect(this.analyser);
 
+    // モニター経路：マイク入力をそのままスピーカーへ。
+    // ゲインを0/1で切り替えることでオン・オフする（接続し直しより滑らか）。
+    this.monitorGain = this.audioCtx.createGain();
+    this.monitorGain.gain.value = this.monitor ? 1 : 0;
+    source.connect(this.monitorGain);
+    this.monitorGain.connect(this.audioCtx.destination);
+
     this.running = true;
     this._history = [];
     this._buffer = new Float32Array(this.analyser.fftSize);
     this._loop();
+  }
+
+  // モニター（スピーカー再生）のオン・オフを切り替える
+  setMonitor(on) {
+    this.monitor = on;
+    if (this.monitorGain) this.monitorGain.gain.value = on ? 1 : 0;
   }
 
   stop() {
