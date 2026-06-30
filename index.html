@@ -91,6 +91,54 @@
       height: 16px;
       letter-spacing: 0.04em;
     }
+
+    /* 詳細設定 */
+    .link-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      opacity: 0.5;
+      font-size: 12px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      padding: 4px;
+    }
+    .link-btn:hover { opacity: 0.8; }
+
+    #settings-panel {
+      width: min(420px, 90vw);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    #settings-panel[hidden] { display: none; }
+
+    .setting label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      opacity: 0.75;
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+    .setting .value { opacity: 1; font-variant-numeric: tabular-nums; }
+
+    .setting input[type="range"] {
+      width: 100%;
+      accent-color: #fff;
+      cursor: pointer;
+    }
+
+    .setting .desc {
+      font-size: 10.5px;
+      opacity: 0.4;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -107,6 +155,28 @@
   <footer>
     <button id="start-btn">マイクをONにする</button>
     <p id="status"></p>
+
+    <button id="settings-toggle" class="link-btn">⚙ 詳細設定</button>
+
+    <div id="settings-panel" hidden>
+      <div class="setting">
+        <label>音量のしきい値 <span class="value" id="rms-val"></span></label>
+        <input type="range" id="rms-range" min="0" max="0.1" step="0.001">
+        <p class="desc">大きくすると小さい音を無視します（雑音に強く／反応は鈍く）。</p>
+      </div>
+
+      <div class="setting">
+        <label>明瞭度のしきい値 <span class="value" id="clarity-val"></span></label>
+        <input type="range" id="clarity-range" min="0.5" max="0.99" step="0.01">
+        <p class="desc">大きいほど「はっきりした音」だけに反応します（ノイズ除去）。</p>
+      </div>
+
+      <div class="setting">
+        <label>なめらかさ <span class="value" id="smoothing-val"></span></label>
+        <input type="range" id="smoothing-range" min="1" max="15" step="1">
+        <p class="desc">大きくするとちらつきが減ります（反応はやや遅く）。</p>
+      </div>
+    </div>
   </footer>
 
   <script src="audio_analyzer.js"></script>
@@ -133,6 +203,37 @@
     let running     = false;
     let currentIdx  = -1;
 
+    // 調整可能なパラメータ（スライダーと連動）
+    const settings = {
+      rmsThreshold: 0.015,
+      clarityThreshold: 0.9,
+      smoothing: 5
+    };
+
+    // スライダー1つを settings の1キーに結びつける
+    function bindSlider(rangeId, valId, key, decimals) {
+      const range = document.getElementById(rangeId);
+      const valEl = document.getElementById(valId);
+      range.value = settings[key];
+      valEl.textContent = Number(settings[key]).toFixed(decimals);
+      range.addEventListener('input', () => {
+        const v = Number(range.value);
+        settings[key] = v;
+        valEl.textContent = v.toFixed(decimals);
+        // 計測中なら即座に反映
+        if (analyzer) analyzer[key] = v;
+      });
+    }
+
+    bindSlider('rms-range', 'rms-val', 'rmsThreshold', 3);
+    bindSlider('clarity-range', 'clarity-val', 'clarityThreshold', 2);
+    bindSlider('smoothing-range', 'smoothing-val', 'smoothing', 0);
+
+    document.getElementById('settings-toggle').addEventListener('click', () => {
+      const panel = document.getElementById('settings-panel');
+      panel.hidden = !panel.hidden;
+    });
+
     function updateVisual(freq) {
       if (freq < 0) {
         imgEl.classList.remove('visible');
@@ -151,7 +252,7 @@
       if (!running) {
         try {
           status.textContent = '起動中...';
-          analyzer = new AudioAnalyzer(updateVisual);
+          analyzer = new AudioAnalyzer(updateVisual, settings);
           await analyzer.start();
           running = true;
           btn.textContent    = 'マイクをOFFにする';
