@@ -1,11 +1,155 @@
 <!DOCTYPE html>
-<html lang="jp">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>音程チェッカー</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #12112a;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    header {
+      padding: 24px 16px 12px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      opacity: 0.55;
+    }
+
+    h1 {
+      font-size: clamp(24px, 6vw, 40px);
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      margin-top: 4px;
+    }
+
+    /* バーを表示するエリア */
+    .stage {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    #pitch-bar {
+      width: clamp(60px, 12vw, 100px);
+      height: 0%;
+      border-radius: 10px 10px 0 0;
+      background: hsl(240, 75%, 60%);
+      box-shadow: 0 0 40px hsla(240, 75%, 60%, 0.4);
+      transition: height 0.08s ease-out, background 0.08s ease-out, box-shadow 0.08s ease-out;
+      will-change: height, background;
+    }
+
+    footer {
+      padding: 20px 16px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #start-btn {
+      background: #fff;
+      color: #12112a;
+      border: none;
+      padding: 14px 36px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 100px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    #start-btn:hover { opacity: 0.85; }
+    #start-btn:active { transform: scale(0.97); }
+
+    #status {
+      font-size: 12px;
+      opacity: 0.4;
+      height: 16px;
+      letter-spacing: 0.04em;
+    }
+  </style>
 </head>
 <body>
-  
+
+  <header>
+    <p class="subtitle">直感的にとてもわかりやすい</p>
+    <h1>音程チェッカー</h1>
+  </header>
+
+  <div class="stage">
+    <div id="pitch-bar"></div>
+  </div>
+
+  <footer>
+    <button id="start-btn">マイクをONにする</button>
+    <p id="status"></p>
+  </footer>
+
+  <script src="audio_analyzer.js"></script>
+  <script>
+    const bar    = document.getElementById('pitch-bar');
+    const btn    = document.getElementById('start-btn');
+    const status = document.getElementById('status');
+
+    const MIN_FREQ = 80;
+    const MAX_FREQ = 1200;
+
+    let analyzer = null;
+    let running  = false;
+
+    function updateVisual(freq) {
+      if (freq < 0) {
+        bar.style.height = '0%';
+        return;
+      }
+      const t   = Math.max(0, Math.min(1, (freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)));
+      const hue = 240 - t * 240;          // 青(240)→赤(0)
+      const pct = (t * 90 + 2).toFixed(1);
+      bar.style.height     = pct + '%';
+      bar.style.background = `hsl(${hue}, 78%, 60%)`;
+      bar.style.boxShadow  = `0 0 40px hsla(${hue}, 78%, 60%, 0.45)`;
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!running) {
+        try {
+          status.textContent = '起動中...';
+          analyzer = new AudioAnalyzer(updateVisual);
+          await analyzer.start();
+          running = true;
+          btn.textContent    = 'マイクをOFFにする';
+          status.textContent = '声や音を入力してください';
+        } catch {
+          status.textContent = 'マイクへのアクセスが拒否されました';
+        }
+      } else {
+        analyzer.stop();
+        running = false;
+        btn.textContent    = 'マイクをONにする';
+        status.textContent = '';
+        bar.style.height   = '0%';
+      }
+    });
+  </script>
 </body>
 </html>
