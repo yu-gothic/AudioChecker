@@ -61,14 +61,14 @@
     const MIN_FREQ = 70;
     const MAX_FREQ = 1500;
 
-    // 音の低い順 → 高い順に並べた画像ファイル名（低音=最初, 高音=最後）
-    const IMAGE_FILES = ['レイヤー 0.png', 'レイヤー 0 のコピー.png'];
-    for (let i = 2; i <= 35; i++) IMAGE_FILES.push(`レイヤー 0 のコピー ${i}.png`);
+    // 音の低い順 → 高い順に並べた画像ファイル名（0.jpg=低音/深い, 19.jpg=高音/高い）
+    const IMAGE_FILES = [];
+    for (let i = 0; i <= 19; i++) IMAGE_FILES.push(`${i}.jpg`);
 
     // プリロードしておき、表示時のちらつきを防ぐ
     const preloaded = IMAGE_FILES.map(name => {
       const im = new Image();
-      im.src = 'images/' + encodeURIComponent(name);
+      im.src = 'images/' + name;
       return im;
     });
 
