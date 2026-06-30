@@ -14,19 +14,24 @@ class AudioAnalyzer {
     this.monitor = options.monitor ?? false;               // マイク入力をスピーカーで再生するか
     this.monitorGain = null;
 
+    this.noiseSuppression = options.noiseSuppression ?? true; // ブラウザ標準のノイズ抑制を使うか
+    this.track = null;
+
     this._history = [];
   }
 
   async start() {
-    // ブラウザ標準のノイズ抑制・エコー除去を有効化（autoGainControlは音量変化を避けるためオフ）
+    // ブラウザ標準のノイズ抑制・エコー除去（autoGainControlは音量変化を避けるためオフ）。
+    // noiseSuppression は後から applyConstraints で切り替えられるようにする。
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        noiseSuppression: true,
-        echoCancellation: true,
+        noiseSuppression: this.noiseSuppression,
+        echoCancellation: this.noiseSuppression,
         autoGainControl: false
       },
       video: false
     });
+    this.track = this.stream.getAudioTracks()[0];
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 2048;
@@ -58,6 +63,18 @@ class AudioAnalyzer {
   setMonitor(on) {
     this.monitor = on;
     if (this.monitorGain) this.monitorGain.gain.value = on ? 1 : 0;
+  }
+
+  // ブラウザ標準のノイズ抑制を計測中でも切り替える（applyConstraintsで再取得なしに反映）
+  setNoiseSuppression(on) {
+    this.noiseSuppression = on;
+    if (this.track && this.track.applyConstraints) {
+      this.track.applyConstraints({
+        noiseSuppression: on,
+        echoCancellation: on,
+        autoGainControl: false
+      }).catch(() => {});
+    }
   }
 
   stop() {
