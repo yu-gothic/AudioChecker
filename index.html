@@ -37,24 +37,28 @@
       margin-top: 4px;
     }
 
-    /* バーを表示するエリア */
+    /* 画像を表示するエリア */
     .stage {
       flex: 1;
       width: 100%;
       position: relative;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
-    #pitch-bar {
-      width: clamp(60px, 12vw, 100px);
-      height: 0%;
-      border-radius: 10px 10px 0 0;
-      background: hsl(240, 75%, 60%);
-      box-shadow: 0 0 40px hsla(240, 75%, 60%, 0.4);
-      transition: height 0.08s ease-out, background 0.08s ease-out, box-shadow 0.08s ease-out;
-      will-change: height, background;
+    #pitch-image {
+      max-width: 80%;
+      max-height: 80%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 0.12s ease-out;
+      will-change: opacity;
+    }
+
+    #pitch-image.visible {
+      opacity: 1;
     }
 
     footer {
@@ -97,7 +101,7 @@
   </header>
 
   <div class="stage">
-    <div id="pitch-bar"></div>
+    <img id="pitch-image" alt="">
   </div>
 
   <footer>
@@ -107,27 +111,40 @@
 
   <script src="audio_analyzer.js"></script>
   <script>
-    const bar    = document.getElementById('pitch-bar');
+    const imgEl  = document.getElementById('pitch-image');
     const btn    = document.getElementById('start-btn');
     const status = document.getElementById('status');
 
     const MIN_FREQ = 80;
     const MAX_FREQ = 1200;
 
-    let analyzer = null;
-    let running  = false;
+    // 音の低い順 → 高い順に並べた画像ファイル名（低音=最初, 高音=最後）
+    const IMAGE_FILES = ['レイヤー 0.png', 'レイヤー 0 のコピー.png'];
+    for (let i = 2; i <= 35; i++) IMAGE_FILES.push(`レイヤー 0 のコピー ${i}.png`);
+
+    // プリロードしておき、表示時のちらつきを防ぐ
+    const preloaded = IMAGE_FILES.map(name => {
+      const im = new Image();
+      im.src = 'images/' + encodeURIComponent(name);
+      return im;
+    });
+
+    let analyzer    = null;
+    let running     = false;
+    let currentIdx  = -1;
 
     function updateVisual(freq) {
       if (freq < 0) {
-        bar.style.height = '0%';
+        imgEl.classList.remove('visible');
         return;
       }
       const t   = Math.max(0, Math.min(1, (freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)));
-      const hue = 240 - t * 240;          // 青(240)→赤(0)
-      const pct = (t * 90 + 2).toFixed(1);
-      bar.style.height     = pct + '%';
-      bar.style.background = `hsl(${hue}, 78%, 60%)`;
-      bar.style.boxShadow  = `0 0 40px hsla(${hue}, 78%, 60%, 0.45)`;
+      const idx = Math.min(IMAGE_FILES.length - 1, Math.floor(t * IMAGE_FILES.length));
+      if (idx !== currentIdx) {
+        currentIdx = idx;
+        imgEl.src  = preloaded[idx].src;
+      }
+      imgEl.classList.add('visible');
     }
 
     btn.addEventListener('click', async () => {
@@ -145,9 +162,10 @@
       } else {
         analyzer.stop();
         running = false;
+        currentIdx = -1;
         btn.textContent    = 'マイクをONにする';
         status.textContent = '';
-        bar.style.height   = '0%';
+        imgEl.classList.remove('visible');
       }
     });
   </script>
