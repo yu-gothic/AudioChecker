@@ -17,6 +17,9 @@ class AudioAnalyzer {
     this.noiseSuppression = options.noiseSuppression ?? true; // ブラウザ標準のノイズ抑制を使うか
     this.track = null;
 
+    this.minFreq = options.minFreq ?? 70;     // 検出する最低周波数
+    this.maxFreq = options.maxFreq ?? 1500;   // 検出する最高周波数
+
     this._history = [];
   }
 
@@ -113,48 +116,51 @@ class AudioAnalyzer {
     const rms = Math.sqrt(energy / SIZE);
     if (rms < this.rmsThreshold) return -1;
 
-    // 検出対象の周波数範囲（80Hz〜1200Hz）をラグ幅に変換
-    const MIN_LAG = Math.floor(sampleRate / 1200);
-    const MAX_LAG = Math.min(Math.floor(sampleRate / 80), SIZE - 1);
+    // 検出対象の周波数範囲をラグ幅に変換
+    const MIN_LAG = Math.floor(sampleRate / this.maxFreq);
+    const MAX_LAG = Math.min(Math.floor(sampleRate / this.minFreq), SIZE - 1);
 
-    // 自己相関法でピッチ検出
+    // 各ラグの自己相関をまとめて計算しておく
+    const corr = new Float32Array(MAX_LAG + 1);
     let maxCorr = 0;
-    let bestLag = -1;
-
+    let maxLag = MIN_LAG;
     for (let lag = MIN_LAG; lag <= MAX_LAG; lag++) {
-      let corr = 0;
+      let sum = 0;
       const len = SIZE - lag;
-      for (let i = 0; i < len; i++) {
-        corr += buffer[i] * buffer[i + lag];
-      }
-      if (corr > maxCorr) {
-        maxCorr = corr;
-        bestLag = lag;
+      for (let i = 0; i < len; i++) sum += buffer[i] * buffer[i + lag];
+      corr[lag] = sum;
+      if (sum > maxCorr) {
+        maxCorr = sum;
+        maxLag = lag;
       }
     }
 
-    if (bestLag === -1) return -1;
+    if (maxCorr <= 0) return -1;
 
     // 明瞭度（clarity）チェック：ピッチがはっきりした音だけ採用する。
     // energy（=ラグ0の自己相関）でピーク値を正規化すると 0〜1 の指標になる。
-    // 雑音や複数音が混ざると値が下がるので、閾値未満は無音扱い＝ノイズ除去になる。
     const clarity = maxCorr / energy;
     if (clarity < this.clarityThreshold) return -1;
 
+    // オクターブエラー対策：最大ピークの一定割合を超える「最初の」ピークを選ぶ。
+    // こうすると、2倍周期（＝1オクターブ下）の強い相関より、基本周期（より短いラグ）を
+    // 優先して拾えるため、高音が半分の周波数に落ちる誤検出を抑えられる。
+    const threshold = maxCorr * 0.9;
+    let bestLag = maxLag;
+    for (let lag = MIN_LAG + 1; lag < MAX_LAG; lag++) {
+      if (corr[lag] > threshold && corr[lag] > corr[lag - 1] && corr[lag] >= corr[lag + 1]) {
+        bestLag = lag;
+        break;
+      }
+    }
+
     // 放物線補間で精度向上
-    const c0 = bestLag > 0 ? this._corrAt(buffer, SIZE, bestLag - 1) : 0;
-    const c1 = maxCorr;
-    const c2 = bestLag < MAX_LAG ? this._corrAt(buffer, SIZE, bestLag + 1) : 0;
+    const c0 = bestLag > MIN_LAG ? corr[bestLag - 1] : corr[bestLag];
+    const c1 = corr[bestLag];
+    const c2 = bestLag < MAX_LAG ? corr[bestLag + 1] : corr[bestLag];
     const denom = 2 * (2 * c1 - c0 - c2);
     const period = denom !== 0 ? bestLag + (c2 - c0) / denom : bestLag;
 
     return sampleRate / period;
-  }
-
-  _corrAt(buffer, size, lag) {
-    let sum = 0;
-    const len = size - lag;
-    for (let i = 0; i < len; i++) sum += buffer[i] * buffer[i + lag];
-    return sum;
   }
 }
