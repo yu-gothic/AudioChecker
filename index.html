@@ -19,7 +19,7 @@
   </div>
 
   <footer>
-    <button id="start-btn">マイクをONにする</button>
+    <button id="start-btn">ON</button>
     <p id="status"></p>
 
     <button id="monitor-toggle" class="link-btn">🔊 モニター: OFF</button>
@@ -48,7 +48,7 @@
     const status = document.getElementById('status');
 
     const MIN_FREQ = 50;
-    const MAX_FREQ = 3000;
+    const MAX_FREQ = 4500;
     // 音高の知覚は対数的（オクターブ＝周波数比）なので、対数でマッピングする。
     // これで低域が広がり、高域ほど画像の上昇幅が抑えられる。
     const LOG_MIN = Math.log(MIN_FREQ);
@@ -73,7 +73,7 @@
     // 調整可能なパラメータ（スライダーと連動）
     // ノイズ対策は「小さい音を無視する（音量しきい値）」のみ。
     const settings = {
-      rmsThreshold: 0.015,
+      rmsThreshold: 0.03,
       smoothing: 5
     };
 
@@ -132,7 +132,7 @@
           analyzer = new AudioAnalyzer(updateVisual, { ...settings, monitor: monitorOn });
           await analyzer.start();
           running = true;
-          btn.textContent    = 'マイクをOFFにする';
+          btn.textContent    = 'OFF';
           status.textContent = '声や音を入力してください';
         } catch {
           status.textContent = 'マイクへのアクセスが拒否されました';
@@ -141,7 +141,7 @@
         analyzer.stop();
         running = false;
         currentIdx = -1;
-        btn.textContent    = 'マイクをONにする';
+        btn.textContent    = 'ON';
         status.textContent = '';
         imgEl.classList.remove('visible');
         hzEl.textContent   = '-- Hz';

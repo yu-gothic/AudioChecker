@@ -14,7 +14,7 @@ class AudioAnalyzer {
     this.monitorGain = null;
 
     this.minFreq = options.minFreq ?? 50;      // 検出する最低周波数
-    this.maxFreq = options.maxFreq ?? 3000;    // 検出する最高周波数
+    this.maxFreq = options.maxFreq ?? 4500;    // 検出する最高周波数
 
     this._history = [];
   }
@@ -79,54 +79,74 @@ class AudioAnalyzer {
     return valid[Math.floor(valid.length / 2)];
   }
 
+  // McLeod Pitch Method (MPM) でピッチを検出する。
+  // 生の自己相関ではなく NSDF（正規化二乗差関数）を使うことで、
+  // 振幅に依存せず 0〜1 に正規化された安定したピークが得られ、精度が上がる。
   _detectPitch(buffer, sampleRate) {
     const SIZE = buffer.length;
 
     // 小さい音を無視：RMS（音量）がしきい値未満なら無音扱い
-    let energy = 0;
-    for (let i = 0; i < SIZE; i++) energy += buffer[i] * buffer[i];
-    const rms = Math.sqrt(energy / SIZE);
+    let power = 0;
+    for (let i = 0; i < SIZE; i++) power += buffer[i] * buffer[i];
+    const rms = Math.sqrt(power / SIZE);
     if (rms < this.rmsThreshold) return -1;
 
     // 検出対象の周波数範囲をラグ幅に変換
     const MIN_LAG = Math.floor(sampleRate / this.maxFreq);
     const MAX_LAG = Math.min(Math.floor(sampleRate / this.minFreq), SIZE - 1);
 
-    // 各ラグの自己相関をまとめて計算しておく
-    const corr = new Float32Array(MAX_LAG + 1);
-    let maxCorr = 0;
-    let maxLag = MIN_LAG;
-    for (let lag = MIN_LAG; lag <= MAX_LAG; lag++) {
-      let sum = 0;
-      const len = SIZE - lag;
-      for (let i = 0; i < len; i++) sum += buffer[i] * buffer[i + lag];
-      corr[lag] = sum;
-      if (sum > maxCorr) {
-        maxCorr = sum;
-        maxLag = lag;
+    // NSDF を計算する。
+    //   nsdf(tau) = 2 * Σ x[i]x[i+tau]  /  Σ (x[i]^2 + x[i+tau]^2)
+    // 分母で正規化するため、値は -1〜1 に収まり、ピッチの明瞭度がそのまま高さに出る。
+    const nsdf = new Float32Array(MAX_LAG + 1);
+    for (let tau = MIN_LAG; tau <= MAX_LAG; tau++) {
+      let acf = 0;
+      let denom = 0;
+      const len = SIZE - tau;
+      for (let i = 0; i < len; i++) {
+        const a = buffer[i];
+        const b = buffer[i + tau];
+        acf += a * b;
+        denom += a * a + b * b;
       }
+      nsdf[tau] = denom > 0 ? (2 * acf) / denom : 0;
     }
 
-    if (maxCorr <= 0) return -1;
-
-    // オクターブエラー対策：最大ピークの一定割合を超える「最初の」ピークを選ぶ。
-    // こうすると、2倍周期（＝1オクターブ下）の強い相関より、基本周期（より短いラグ）を
-    // 優先して拾えるため、高音が半分の周波数に落ちる誤検出を抑えられる。
-    const threshold = maxCorr * 0.9;
-    let bestLag = maxLag;
-    for (let lag = MIN_LAG + 1; lag < MAX_LAG; lag++) {
-      if (corr[lag] > threshold && corr[lag] > corr[lag - 1] && corr[lag] >= corr[lag + 1]) {
-        bestLag = lag;
-        break;
+    // キー極大（key maxima）を集める：NSDF が正の各区間ごとに、その区間の最大値を1つ拾う。
+    const maxima = [];
+    let tau = MIN_LAG;
+    while (tau < MAX_LAG && nsdf[tau] > 0) tau++;   // 最初の正の山（tau≈0側の自明なピーク）を飛ばす
+    while (tau < MAX_LAG) {
+      if (nsdf[tau] > 0) {
+        let localMax = tau;
+        while (tau < MAX_LAG && nsdf[tau] > 0) {
+          if (nsdf[tau] > nsdf[localMax]) localMax = tau;
+          tau++;
+        }
+        maxima.push(localMax);
+      } else {
+        tau++;
       }
     }
+    if (maxima.length === 0) return -1;
 
-    // 放物線補間で精度向上
-    const c0 = bestLag > MIN_LAG ? corr[bestLag - 1] : corr[bestLag];
-    const c1 = corr[bestLag];
-    const c2 = bestLag < MAX_LAG ? corr[bestLag + 1] : corr[bestLag];
-    const denom = 2 * (2 * c1 - c0 - c2);
-    const period = denom !== 0 ? bestLag + (c2 - c0) / denom : bestLag;
+    // オクターブエラー対策：最大の極大の一定割合を超える「最初の」極大を採用する。
+    // これで基本周期（より短いラグ）が優先され、1オクターブ下への誤検出を防ぐ。
+    let highest = 0;
+    for (const t of maxima) if (nsdf[t] > highest) highest = nsdf[t];
+    const threshold = highest * 0.9;
+    let bestTau = maxima[0];
+    for (const t of maxima) {
+      if (nsdf[t] >= threshold) { bestTau = t; break; }
+    }
+
+    // 放物線補間で tau をサブサンプル精度に高める
+    const x0 = bestTau > MIN_LAG ? nsdf[bestTau - 1] : nsdf[bestTau];
+    const x1 = nsdf[bestTau];
+    const x2 = bestTau < MAX_LAG ? nsdf[bestTau + 1] : nsdf[bestTau];
+    const a = (x0 + x2 - 2 * x1) / 2;
+    const b = (x2 - x0) / 2;
+    const period = a !== 0 ? bestTau - b / (2 * a) : bestTau;
 
     return sampleRate / period;
   }
