@@ -60,6 +60,10 @@
 
     const MIN_FREQ = 70;
     const MAX_FREQ = 1500;
+    // 音高の知覚は対数的（オクターブ＝周波数比）なので、対数でマッピングする。
+    // これで低域が広がり、高域ほど画像の上昇幅が抑えられる。
+    const LOG_MIN = Math.log(MIN_FREQ);
+    const LOG_MAX = Math.log(MAX_FREQ);
 
     // 音の低い順 → 高い順に並べた画像ファイル名（0.jpg=低音/深い, 19.jpg=高音/高い）
     const IMAGE_FILES = [];
@@ -135,7 +139,7 @@
         return;
       }
       hzEl.textContent = Math.round(freq) + ' Hz';
-      const t   = Math.max(0, Math.min(1, (freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)));
+      const t   = Math.max(0, Math.min(1, (Math.log(freq) - LOG_MIN) / (LOG_MAX - LOG_MIN)));
       const idx = Math.min(IMAGE_FILES.length - 1, Math.floor(t * IMAGE_FILES.length));
       if (idx !== currentIdx) {
         currentIdx = idx;
