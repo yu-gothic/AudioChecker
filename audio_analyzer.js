@@ -11,7 +11,7 @@ class AudioAnalyzer {
     this.smoothing = options.smoothing ?? 5;   // メディアンフィルタのフレーム数（表示の安定化）
 
     this.minFreq = options.minFreq ?? 50;      // 検出する最低周波数
-    this.maxFreq = options.maxFreq ?? 4500;    // 検出する最高周波数
+    this.maxFreq = options.maxFreq ?? 5000;    // 検出する最高周波数
 
     this._history = [];
   }

@@ -4,7 +4,7 @@ const btn    = document.getElementById('start-btn');
 const status = document.getElementById('status');
 
 const MIN_FREQ = 50;
-const MAX_FREQ = 4500;
+const MAX_FREQ = 3000;
 // 音高の知覚は対数的（オクターブ＝周波数比）なので、対数でマッピングする。
 // これで低域が広がり、高域ほど画像の上昇幅が抑えられる。
 const LOG_MIN = Math.log(MIN_FREQ);
@@ -12,7 +12,7 @@ const LOG_MAX = Math.log(MAX_FREQ);
 
 // 音の低い順 → 高い順に並べた画像ファイル名（0.jpg=低音/深い, 25.jpg=高音/高い）
 const IMAGE_FILES = [];
-for (let i = 0; i <= 25; i++) IMAGE_FILES.push(`${i}.jpg`);
+for (let i = 0; i <= 23; i++) IMAGE_FILES.push(`${i}.jpg`);
 
 // プリロードしておき、表示時のちらつきを防ぐ
 const preloaded = IMAGE_FILES.map(name => {
@@ -28,7 +28,7 @@ let currentIdx  = -1;
 // 調整可能なパラメータ（スライダーと連動）
 // ノイズ対策は「小さい音を無視する（音量しきい値）」のみ。
 const settings = {
-  rmsThreshold: 0.003,
+  rmsThreshold: 0.001,
   smoothing: 5
 };
 
