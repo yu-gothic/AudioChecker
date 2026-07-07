@@ -78,7 +78,7 @@ btn.addEventListener('click', async () => {
       analyzer = new AudioAnalyzer(updateVisual, settings);
       await analyzer.start();
       running = true;
-      btn.textContent    = 'OFF';
+      btn.textContent    = 'マイクOFF';
       status.textContent = '声や音を入力してください';
     } catch {
       status.textContent = 'マイクへのアクセスが拒否されました';
@@ -87,7 +87,7 @@ btn.addEventListener('click', async () => {
     analyzer.stop();
     running = false;
     currentIdx = -1;
-    btn.textContent    = 'ON';
+    btn.textContent    = 'マイクON';
     status.textContent = '';
     imgEl.classList.remove('visible');
     hzEl.textContent   = '-- Hz';

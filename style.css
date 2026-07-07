@@ -24,11 +24,15 @@ header {
 }
 
 h1 {
-  font-size: clamp(24px, 6vw, 40px);
+  font-size: clamp(24px, 6vw, 60px);
   font-weight: 900;
   letter-spacing: 0.03em;
   margin-top: 4px;
 }
+
+/* 「音程」と「チェッカー」で大きさを変える（em で h1 のサイズに追従） */
+.title-main { font-size: 1.5em; }
+.title-sub  { font-size: 1em; }
 
 /* 画像を表示するエリア */
 .stage {
@@ -82,7 +86,6 @@ footer {
   padding: 14px 36px;
   font-size: 15px;
   font-weight: 700;
-  border-radius: 100px;
   cursor: pointer;
   letter-spacing: 0.05em;
   transition: opacity 0.15s, transform 0.1s;
@@ -135,7 +138,31 @@ footer {
 
 .setting input[type="range"] {
   width: 100%;
-  accent-color: #333;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* つまみ（縁取りなし） */
+.setting input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #333;
+  border: none;
+  cursor: pointer;
+}
+.setting input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #333;
+  border: none;
   cursor: pointer;
 }
 
