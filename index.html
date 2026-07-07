@@ -26,21 +26,10 @@
     <button id="settings-toggle" class="link-btn">⚙ 詳細設定</button>
 
     <div id="settings-panel" hidden>
-      <div class="setting setting-check">
-        <label><input type="checkbox" id="ns-check"> ブラウザのノイズ抑制</label>
-        <p class="desc">強すぎると感じたらオフに。素の音を拾うので楽器のチューニング向きです。</p>
-      </div>
-
       <div class="setting">
         <label>音量のしきい値 <span class="value" id="rms-val"></span></label>
         <input type="range" id="rms-range" min="0" max="0.1" step="0.001">
         <p class="desc">大きくすると小さい音を無視します（雑音に強く／反応は鈍く）。</p>
-      </div>
-
-      <div class="setting">
-        <label>明瞭度のしきい値 <span class="value" id="clarity-val"></span></label>
-        <input type="range" id="clarity-range" min="0" max="0.99" step="0.01">
-        <p class="desc">0で判定なし。大きいほど「はっきりした音」だけに反応します（ノイズ除去）。</p>
       </div>
 
       <div class="setting">
@@ -58,16 +47,16 @@
     const btn    = document.getElementById('start-btn');
     const status = document.getElementById('status');
 
-    const MIN_FREQ = 70;
-    const MAX_FREQ = 1500;
+    const MIN_FREQ = 50;
+    const MAX_FREQ = 4500;
     // 音高の知覚は対数的（オクターブ＝周波数比）なので、対数でマッピングする。
     // これで低域が広がり、高域ほど画像の上昇幅が抑えられる。
     const LOG_MIN = Math.log(MIN_FREQ);
     const LOG_MAX = Math.log(MAX_FREQ);
 
-    // 音の低い順 → 高い順に並べた画像ファイル名（0.jpg=低音/深い, 19.jpg=高音/高い）
+    // 音の低い順 → 高い順に並べた画像ファイル名（0.jpg=低音/深い, 25.jpg=高音/高い）
     const IMAGE_FILES = [];
-    for (let i = 0; i <= 19; i++) IMAGE_FILES.push(`${i}.jpg`);
+    for (let i = 0; i <= 25; i++) IMAGE_FILES.push(`${i}.jpg`);
 
     // プリロードしておき、表示時のちらつきを防ぐ
     const preloaded = IMAGE_FILES.map(name => {
@@ -81,14 +70,11 @@
     let currentIdx  = -1;
     let monitorOn   = false;
 
-    // 調整可能なパラメータ（スライダー・チェックボックスと連動）
-    // 既定は「小さい音を無視する（音量しきい値）」だけを使う。
-    // ブラウザのノイズ抑制と明瞭度判定はオフ（明瞭度0 = 判定なし）。
+    // 調整可能なパラメータ（スライダーと連動）
+    // ノイズ対策は「小さい音を無視する（音量しきい値）」のみ。
     const settings = {
       rmsThreshold: 0.015,
-      clarityThreshold: 0,
-      smoothing: 5,
-      noiseSuppression: false
+      smoothing: 5
     };
 
     // スライダー1つを settings の1キーに結びつける
@@ -107,16 +93,7 @@
     }
 
     bindSlider('rms-range', 'rms-val', 'rmsThreshold', 3);
-    bindSlider('clarity-range', 'clarity-val', 'clarityThreshold', 2);
     bindSlider('smoothing-range', 'smoothing-val', 'smoothing', 0);
-
-    // ブラウザのノイズ抑制チェックボックス
-    const nsCheck = document.getElementById('ns-check');
-    nsCheck.checked = settings.noiseSuppression;
-    nsCheck.addEventListener('change', () => {
-      settings.noiseSuppression = nsCheck.checked;
-      if (analyzer) analyzer.setNoiseSuppression(nsCheck.checked);
-    });
 
     document.getElementById('settings-toggle').addEventListener('click', () => {
       const panel = document.getElementById('settings-panel');

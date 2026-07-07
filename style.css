@@ -1,8 +1,8 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: #12112a;
-  color: #fff;
+  background: #ffffff;
+  color: #333333;
   font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
   height: 100dvh;
   display: flex;
@@ -76,8 +76,8 @@ footer {
 }
 
 #start-btn {
-  background: #fff;
-  color: #12112a;
+  background: #333;
+  color: #fff;
   border: none;
   padding: 14px 36px;
   font-size: 15px;
@@ -102,7 +102,7 @@ footer {
 .link-btn {
   background: none;
   border: none;
-  color: #fff;
+  color: #333;
   opacity: 0.5;
   font-size: 12px;
   cursor: pointer;
@@ -135,7 +135,7 @@ footer {
 
 .setting input[type="range"] {
   width: 100%;
-  accent-color: #fff;
+  accent-color: #333;
   cursor: pointer;
 }
 
@@ -144,19 +144,4 @@ footer {
   opacity: 0.4;
   margin-top: 4px;
   line-height: 1.4;
-}
-
-.setting-check label {
-  justify-content: flex-start;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  opacity: 0.9;
-  margin-bottom: 0;
-}
-.setting-check input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #fff;
-  cursor: pointer;
 }
