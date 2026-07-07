@@ -14,7 +14,7 @@ class AudioAnalyzer {
     this.monitorGain = null;
 
     this.minFreq = options.minFreq ?? 50;      // 検出する最低周波数
-    this.maxFreq = options.maxFreq ?? 4500;    // 検出する最高周波数
+    this.maxFreq = options.maxFreq ?? 3000;    // 検出する最高周波数
 
     this._history = [];
   }

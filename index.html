@@ -48,7 +48,7 @@
     const status = document.getElementById('status');
 
     const MIN_FREQ = 50;
-    const MAX_FREQ = 4500;
+    const MAX_FREQ = 3000;
     // 音高の知覚は対数的（オクターブ＝周波数比）なので、対数でマッピングする。
     // これで低域が広がり、高域ほど画像の上昇幅が抑えられる。
     const LOG_MIN = Math.log(MIN_FREQ);
