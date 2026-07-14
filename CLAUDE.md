@@ -8,7 +8,6 @@ This repository is at the scaffolding stage. It currently contains only:
 
 - `index.html` — a blank HTML5 document (empty `<body>`, placeholder `<title>`).
 - `audio_analyzer.js` — an empty file (no code yet).
-- `README.md` — one line: "関さんによるもの" (by Seki-san).
 
 There is no build system, package manager, dependency manifest, or test setup. The page is plain static HTML/JS intended to be opened directly in a browser.
 
