@@ -65,7 +65,7 @@ h1 {
   right: 16px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-  opacity: 0.55;
+  opacity: 0;
   letter-spacing: 0.05em;
   pointer-events: none;
   mix-blend-mode: difference;
