@@ -7,7 +7,7 @@ class AudioAnalyzer {
     this.running = false;
 
     // 小さい音を無視するしきい値（この音量未満は無音扱い）＝唯一のノイズ対策
-    this.rmsThreshold = options.rmsThreshold ?? 0.015;
+    this.rmsThreshold = options.rmsThreshold ?? 0.002;
     this.smoothing = options.smoothing ?? 5;   // メディアンフィルタのフレーム数（表示の安定化）
 
     this.minFreq = options.minFreq ?? 50;      // 検出する最低周波数

@@ -28,7 +28,7 @@ let currentIdx  = -1;
 // 調整可能なパラメータ（スライダーと連動）
 // ノイズ対策は「小さい音を無視する（音量しきい値）」のみ。
 const settings = {
-  rmsThreshold: 0.001,
+  rmsThreshold: 0.002,
   smoothing: 5
 };
 
