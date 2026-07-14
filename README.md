@@ -1,2 +1,1 @@
-# GUIdesign_yakunitatanai
-関さんによるもの
+# audio check
