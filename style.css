@@ -17,22 +17,24 @@ header {
   text-align: center;
 }
 
-.subtitle {
-  font-size: 13px;
-  letter-spacing: 0.05em;
-  opacity: 0.55;
+h1 {
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 0.5;
 }
 
-h1 {
-  font-size: clamp(24px, 6vw, 60px);
+
+.title {
+  font-size: clamp(24px, 6vw, 50px);
   font-weight: 900;
   letter-spacing: 0.03em;
   margin-top: 4px;
 }
 
-/* 「音程」と「チェッカー」で大きさを変える（em で h1 のサイズに追従） */
-.title-main { font-size: 1.5em; }
-.title-sub  { font-size: 1em; }
+.subtitle { font-size: 0.6em; }
+.title-part1 { font-size: 0.73em; }
+.title-part2  { font-size: 0.5em; }
+
 
 /* 画像を表示するエリア */
 .stage {
